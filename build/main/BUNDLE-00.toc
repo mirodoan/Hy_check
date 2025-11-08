@@ -1,0 +1,1 @@
+([('main', '/Users/macpro/IndieHacker/KiotCheck/dist/main', 'EXECUTABLE')],)
