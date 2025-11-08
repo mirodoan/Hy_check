@@ -1,3 +1,4 @@
+from operator import index
 import pandas as pd
 from database import Database
 
@@ -10,9 +11,9 @@ class ExcelHandler:
         try:
             # Đọc file Excel hoặc CSV
             if file_path.endswith('.csv'):
-                df = pd.read_csv(file_path)
+                df = pd.read_csv(file_path, dtype={'Mã vạch': str})
             else:
-                df = pd.read_excel(file_path)
+                df = pd.read_excel(file_path, dtype={'Mã vạch': str})
 
             success_count = 0
             error_list = []
@@ -36,37 +37,47 @@ class ExcelHandler:
                 try:
                     barcode = str(row['barcode']).strip()
                     name = str(row['name']).strip()
-                    unit = str(row['unit']).strip()
+                    # Đơn vị tính dùng lowercase để kiểm tra trùng, nhưng lưu thì capitalize
+                    unit_raw = str(row['unit']).strip()
+                    unit_check = unit_raw.lower()
+                    unit_save = unit_raw.capitalize()
                     price_str = str(row['price']).replace('.', '').replace(',', '.')
                     price = float(price_str) if price_str else 0.0
+                    price = int(price)
+
+                    # Kiểm tra trùng barcode + đơn vị tính (dùng lowercase)
+                    existed_units = [u[2].lower() for u in self.db.get_units_by_barcode(barcode)]
+                    if unit_check in existed_units:
+                        error_list.append(f"Dòng {index + 2}: Trùng mã vạch + đơn vị")
+                        continue
 
                     # Thêm sản phẩm nếu chưa có
                     if not self.db.get_product_by_barcode(barcode):
                         self.db.add_product(barcode, name)
-                    # Thêm đơn vị tính
-                    if self.db.add_unit(barcode, unit, price):
+                    # Thêm đơn vị tính (lưu dạng capitalize)
+                    if self.db.add_unit(barcode, unit_save, price):
                         success_count += 1
                     else:
                         error_list.append(f"Dòng {index + 2}: Trùng mã vạch + đơn vị")
                 except Exception as e:
                     error_list.append(f"Dòng {index + 2}: {str(e)}")
-
-            return True, f"Import thành công {success_count} đơn vị tính. Lỗi: {len(error_list)}"
+            return True, f"Import thành công {success_count} đơn vị tính. " + \
+                   (f"Lỗi ở {len(error_list)} dòng." if error_list else ""), error_list
         except Exception as e:
-            return False, f"Lỗi đọc file: {str(e)}"
-    
+            return False, f"Lỗi đọc file: {str(e)}", []
+
     def export_to_excel(self, file_path):
         """Export sản phẩm ra Excel theo mẫu: Mã vạch, Tên hàng, Giá bán, ĐVT"""
         try:
             products = self.db.get_all_products()
             rows = []
             for prod in products:
-                barcode = prod[1]
+                barcode = str(prod[1])  # Luôn là text
                 name = prod[2]
                 units = self.db.get_units_by_barcode(barcode)
                 for unit_row in units:
                     unit = unit_row[2]
-                    price = unit_row[3]
+                    price = int(unit_row[3])  # Cắt phần thập phân
                     rows.append({
                         'Mã vạch': barcode,
                         'Tên hàng': name,

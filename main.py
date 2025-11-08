@@ -116,8 +116,8 @@ class KiotCheckApp:
         style.configure("Treeview", rowheight=36)  # Tăng chiều cao dòng như bảng đơn vị tính
         # Thiết lập column widths và căn giữa/thẳng hàng
         self.product_tree.column("#0", width=60, anchor="center", stretch=False)
-        self.product_tree.column("barcode", width=260, anchor="w", stretch=False, minwidth=180)
-        self.product_tree.column("name", width=380, anchor="w", stretch=True, minwidth=200)
+        self.product_tree.column("barcode", width=220, anchor="center", stretch=False, minwidth=180)
+        self.product_tree.column("name", width=420, anchor="w", stretch=True, minwidth=220)
         # Đảm bảo header style lớn
         self.product_tree.heading("#0", text="ID", anchor="center")
         self.product_tree.heading("barcode", text="Mã vạch", anchor="center")
@@ -244,8 +244,9 @@ class KiotCheckApp:
         # Xóa tất cả items cũ
         for item in self.product_tree.get_children():
             self.product_tree.delete(item)
-        # Load lại từ database
+        # Load lại từ database và sort theo ID tăng dần
         products = self.db.get_all_products()
+        products = sorted(products, key=lambda x: x[0])  # x[0] là ID
         for product in products:
             barcode = product[1]
             self.product_tree.insert(
@@ -263,11 +264,28 @@ class KiotCheckApp:
             products = self.db.search_products(search_term)
         else:
             products = self.db.get_all_products()
-        for product in products:
-            barcode = product[1]
+
+        if products:
+            for product in products:
+                barcode = product[1]
+                self.product_tree.insert(
+                    "", "end", text=product[0], values=(barcode, product[2])
+                )
+        else:
+            # Hiện thông báo không tìm thấy
             self.product_tree.insert(
-                "", "end", text=product[0], values=(barcode, product[2])
+                "", "end",
+                text="",
+                values=("", ""),
             )
+            self.product_tree.heading("name", text="Tên sản phẩm", anchor="w")
+            # Đổi màu và font cho dòng thông báo
+            self.product_tree.item(self.product_tree.get_children()[0], tags=("notfound",))
+            style = ttk.Style()
+            style.configure("notfound.Treeview", foreground="blue", font=("Arial", 21, "normal"))
+            self.product_tree.tag_configure("notfound", foreground="blue", font=("Arial", 21, "normal"))
+            self.product_tree.set(self.product_tree.get_children()[0], "name", "Vui lòng nhập tìm kiếm chính xác hơn!")
+
 
     def add_product(self):
         """Thêm sản phẩm mới"""
@@ -334,14 +352,13 @@ class KiotCheckApp:
         self.product_dialog(product_id, values)
 
     def product_dialog(self, barcode=None, values=None):
-        """Dialog thêm/sửa sản phẩm với quản lý nhiều đơn vị tính"""
+        """Dialog thêm/sửa sản phẩm với quản lý nhiều đơn vị tính (đảm bảo Hủy không mất dữ liệu gốc)"""
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Thêm sản phẩm" if barcode is None else "Sửa sản phẩm")
         dialog.geometry("750x650")
         dialog.transient(self.root)
         dialog.grab_set()
-        # Căn giữa màn hình
         dialog.update_idletasks()
         w = 750
         h = 650
@@ -352,111 +369,65 @@ class KiotCheckApp:
         barcode_var = tk.StringVar(value=values[0] if values else (barcode or ""))
         name_var = tk.StringVar(value=values[1] if values else "")
 
-        # Form fields - tiêu đề và ô nhập cùng hàng
-        # Sử dụng grid để căn thẳng hàng và full width
+        # Lấy đơn vị tính gốc từ DB (biến tạm, không thao tác trực tiếp DB khi thêm/xoá)
+        units_origin = list(self.db.get_units_by_barcode(barcode_var.get().strip()))
+        units_temp = [list(u) for u in units_origin]  # Sao chép để thao tác tạm
+
         input_frame = ttk.Frame(dialog)
         input_frame.pack(fill=X, padx=20, pady=15)
-
         ttk.Label(input_frame, text="Mã vạch:", font=("Arial", 17, "bold")).grid(row=0, column=0, sticky="w", pady=5)
         barcode_entry = ttk.Entry(input_frame, textvariable=barcode_var, font=("Arial", 15))
         barcode_entry.grid(row=0, column=1, sticky="ew", padx=(12,0), pady=5)
-
         ttk.Label(input_frame, text="Tên sản phẩm:", font=("Arial", 17, "bold")).grid(row=1, column=0, sticky="w", pady=5)
         name_entry = ttk.Entry(input_frame, textvariable=name_var, font=("Arial", 15))
         name_entry.grid(row=1, column=1, sticky="ew", padx=(12,0), pady=5)
-
         input_frame.columnconfigure(1, weight=1)
 
-        # Đơn vị tính + giá (chỉ giữ lại phần quản lý, bỏ labelframe thừa)
         unit_frame = ttk.LabelFrame(dialog)
         unit_frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
-        ttk.Label(
-            unit_frame, text="Đơn vị tính & Giá bán", font=("Arial", 17, "bold")
-        ).pack(anchor=W, padx=8, pady=8)
+        ttk.Label(unit_frame, text="Đơn vị tính & Giá bán", font=("Arial", 17, "bold")).pack(anchor=W, padx=8, pady=8)
 
         add_unit_frame = ttk.Frame(unit_frame)
         add_unit_frame.pack(fill=X, padx=8, pady=10)
         add_unit_var = tk.StringVar()
         add_price_var = tk.StringVar()
 
-        unit_entry = ttk.Entry(
-            add_unit_frame, textvariable=add_unit_var, width=16, font=("Arial", 13)
-        )
+        unit_entry = ttk.Entry(add_unit_frame, textvariable=add_unit_var, width=16, font=("Arial", 13))
         unit_entry.pack(side=LEFT, padx=4)
         unit_entry.config(foreground="#888")
-
         def clear_unit_placeholder(event):
             if unit_entry.get() == "Đơn vị":
                 unit_entry.delete(0, tk.END)
                 unit_entry.config(foreground="#000")
-
         def restore_unit_placeholder(event):
             if not unit_entry.get():
                 unit_entry.insert(0, "Đơn vị")
                 unit_entry.config(foreground="#888")
-
         unit_entry.insert(0, "Đơn vị")
         unit_entry.bind("<FocusIn>", clear_unit_placeholder)
         unit_entry.bind("<FocusOut>", restore_unit_placeholder)
 
-        price_entry = ttk.Entry(
-            add_unit_frame, textvariable=add_price_var, width=16, font=("Arial", 13)
-        )
+        price_entry = ttk.Entry(add_unit_frame, textvariable=add_price_var, width=16, font=("Arial", 13))
         price_entry.pack(side=LEFT, padx=4)
         price_entry.config(foreground="#888")
-
         def clear_price_placeholder(event):
             if price_entry.get() == "Giá bán":
                 price_entry.delete(0, tk.END)
                 price_entry.config(foreground="#000")
-
         def restore_price_placeholder(event):
             if not price_entry.get():
                 price_entry.insert(0, "Giá bán")
                 price_entry.config(foreground="#888")
-
         price_entry.insert(0, "Giá bán")
         price_entry.bind("<FocusIn>", clear_price_placeholder)
         price_entry.bind("<FocusOut>", restore_price_placeholder)
 
-        def add_unit():
-            barcode = barcode_var.get().strip()
-            unit = add_unit_var.get().strip()
-            price_str = add_price_var.get().replace(".", "").replace(",", ".")
-            try:
-                price = float(price_str)
-            except:
-                messagebox.showerror("Lỗi", "Giá phải là số!")
-                return
-            if not barcode or not unit or price <= 0:
-                messagebox.showerror("Lỗi", "Điền đủ barcode, đơn vị, giá > 0!")
-                return
-            if self.db.add_unit(barcode, unit, price):
-                load_units()
-                add_unit_var.set("")
-                add_price_var.set("")
-                restore_unit_placeholder(None)
-                restore_price_placeholder(None)
-            else:
-                messagebox.showerror("Lỗi", "Trùng barcode + đơn vị!")
-
-        ttk.Button(
-            add_unit_frame,
-            text="➕",
-            width=3,
-            command=add_unit,
-            style="success.TButton",
-        ).pack(side=LEFT, padx=4)
-
+        # Treeview đơn vị tính
         style = ttk.Style()
         style.configure("Treeview.Heading", font=("Arial", 15, "bold"))
         style.configure("Treeview", font=("Arial", 15))
-        style.configure("Treeview", rowheight=32)  # Tăng chiều cao mỗi hàng
-
-        # Thêm cột thao tác
-        unit_tree = ttk.Treeview(
-            unit_frame, columns=("unit", "price", "action"), show="headings", height=3
-        )
+        style.configure("Treeview", rowheight=32)
+        unit_tree = ttk.Treeview(unit_frame, columns=("unit", "price", "action"), show="headings", height=3)
         unit_tree.heading("unit", text="Đơn vị tính")
         unit_tree.heading("price", text="Giá bán (VND)")
         unit_tree.heading("action", text="Thao tác")
@@ -464,48 +435,56 @@ class KiotCheckApp:
         unit_tree.column("price", width=160, anchor="center")
         unit_tree.column("action", width=60, anchor="center")
         unit_tree.pack(side=LEFT, fill=BOTH, expand=True, padx=10, pady=15)
-
-        unit_scroll = ttk.Scrollbar(
-            unit_frame, orient=VERTICAL, command=unit_tree.yview
-        )
+        unit_scroll = ttk.Scrollbar(unit_frame, orient=VERTICAL, command=unit_tree.yview)
         unit_tree.configure(yscrollcommand=unit_scroll.set)
         unit_scroll.pack(side=RIGHT, fill=Y)
 
-        # Bắt sự kiện click vào cột thao tác
-        def on_tree_click(event):
-            region = unit_tree.identify("region", event.x, event.y)
-            if region != "cell":
-                return
-            col = unit_tree.identify_column(event.x)
-            row = unit_tree.identify_row(event.y)
-            if not row or col != "#3":
-                return
-            bbox = unit_tree.bbox(row, col)
-            if not bbox:
-                return
-            # Chỉ có 1 icon xoá, click vào là xoá
-            item = unit_tree.item(row)
-            unit_name = item["values"][0]
-            show_delete_unit_popup(row, unit_name)
-
-        unit_tree.bind("<Button-1>", on_tree_click)
-
         def load_units():
             unit_tree.delete(*unit_tree.get_children())
-            barcode = barcode_var.get().strip()
-            if barcode:
-                units = self.db.get_units_by_barcode(barcode)
-                for u in units:
-                    unit_tree.insert(
-                        "", "end", iid=u[0],
-                        values=(u[2], f"{u[3]:,.0f}", "🗑️ Xoá")
-                    )
+            for idx, u in enumerate(units_temp):
+                unit_tree.insert(
+                    "", "end", iid=idx,
+                    values=(u[2], f"{u[3]:,.0f}", "🗑️ Xoá")
+                )
 
-        def delete_unit(unit_id):
-            self.db.delete_unit(unit_id)
+        def add_unit():
+            barcode = barcode_var.get().strip()
+            unit_raw = add_unit_var.get().strip()
+            price_str = add_price_var.get().replace(".", "").replace(",", ".")
+            # Validate: Đơn vị không được để trống hoặc là placeholder "Đơn vị"
+            if not unit_raw or unit_raw == "Đơn vị":
+                messagebox.showerror("Lỗi", "Cần nhập đơn vị tính!")
+                return
+            # Validate: Giá bán không được để trống
+            if not price_str or price_str == "Giá bán":
+                messagebox.showerror("Lỗi", "Cần nhập giá bán!")
+                return
+            # Validate: Giá bán phải là số và > 0
+            try:
+                price = float(price_str)
+                if price <= 0:
+                    raise ValueError
+            except:
+                messagebox.showerror("Lỗi", "Giá bán phải là số > 0!")
+                return
+            unit_check = unit_raw.lower()
+            unit_save = unit_raw.capitalize()
+            existed_units = [u[2].lower() for u in units_temp]
+            if unit_check in existed_units:
+                messagebox.showerror("Lỗi", "Trùng mã vạch + đơn vị!")
+                return
+            units_temp.append([None, barcode, unit_save, price])
+            load_units()
+            add_unit_var.set("")
+            add_price_var.set("")
+            restore_unit_placeholder(None)
+            restore_price_placeholder(None)
+
+        def delete_unit(idx):
+            del units_temp[int(idx)]
             load_units()
 
-        def show_delete_unit_popup(unit_id, unit_name):
+        def show_delete_unit_popup(idx, unit_name):
             popup = tk.Toplevel(dialog)
             popup.title("Xác nhận xoá đơn vị tính")
             popup.geometry("480x260")
@@ -516,7 +495,6 @@ class KiotCheckApp:
             x = (popup.winfo_screenwidth() // 2) - (w // 2)
             y = (popup.winfo_screenheight() // 2) - (h // 2)
             popup.geometry(f"{w}x{h}+{x}+{y}")
-
             label = ttk.Label(
                 popup,
                 text=f'Bạn có chắc muốn xoá đơn vị tính "{unit_name}" này?',
@@ -526,28 +504,41 @@ class KiotCheckApp:
                 justify="center"
             )
             label.pack(pady=40, padx=20)
-
             btn_frame = ttk.Frame(popup)
             btn_frame.pack(pady=10)
-
             ttk.Button(
                 btn_frame, text="Không", command=popup.destroy, style="danger.TButton", width=12
             ).pack(side=LEFT, padx=10)
             def do_delete():
-                delete_unit(unit_id)
+                delete_unit(idx)
                 popup.destroy()
                 messagebox.showinfo("Thành công", f'Đã xoá đơn vị tính "{unit_name}"!')
             ttk.Button(
                 btn_frame, text="Xoá", command=do_delete, style="success.TButton", width=12
             ).pack(side=LEFT, padx=10)
 
+        unit_tree.bind("<Button-1>", lambda event: (
+            lambda region, col, row: show_delete_unit_popup(row, unit_tree.item(row)["values"][0])
+            if region == "cell" and col == "#3" and row else None
+        )(
+            unit_tree.identify("region", event.x, event.y),
+            unit_tree.identify_column(event.x),
+            unit_tree.identify_row(event.y)
+        ))
+
         load_units()
 
+        ttk.Button(
+            add_unit_frame,
+            text="➕",
+            width=3,
+            command=add_unit,
+            style="success.TButton",
+        ).pack(side=LEFT, padx=4)
 
-        # Gợi ý Google Images (chỉ 1 lần)
+        # Google Images
         def open_google_images():
             import webbrowser
-
             q = barcode_var.get().strip() or name_var.get().strip()
             if not q:
                 messagebox.showinfo("Gợi ý", "Nhập mã vạch hoặc tên sản phẩm trước!")
@@ -567,35 +558,45 @@ class KiotCheckApp:
             style="info.TButton",
         ).pack(side=LEFT, padx=10)
 
-        # Buttons (chỉ 1 lần)
         btn_frame = ttk.Frame(dialog)
         btn_frame.pack(pady=30)
 
         def save_product():
             barcode = barcode_var.get().strip()
             name = name_var.get().strip()
-            existed = self.db.get_product_by_barcode(barcode)
+            # Kiểm tra các trường input
             if not barcode or not name:
                 messagebox.showerror("Lỗi", "Điền đủ mã vạch và tên sản phẩm!")
                 return
+            if not units_temp or any(not u[2] or not u[3] for u in units_temp):
+                messagebox.showerror("Lỗi", "Sản phẩm phải có ít nhất 1 đơn vị tính và giá bán!")
+                return
             existed = self.db.get_product_by_barcode(barcode)
-            # Nếu đang sửa (barcode đã tồn tại và là dialog sửa), chỉ cập nhật
-            if barcode and existed and (barcode == (values[0] if values else barcode)):
+            # Nếu đang sửa sản phẩm (chỉ khi values truyền vào từ nút Sửa, không phải Thêm mới)
+            is_edit = values is not None and len(values) >= 2 and existed and barcode == values[0]
+            if is_edit:
                 self.db.update_product(barcode, name)
+                self.db.delete_all_units_by_barcode(barcode)
+                for u in units_temp:
+                    self.db.add_unit(barcode, u[2], u[3])
                 messagebox.showinfo("Thành công", "Đã cập nhật sản phẩm!")
                 dialog.destroy()
                 self.refresh_products()
                 return
-            # Nếu đang thêm mới (barcode chưa tồn tại)
+            # Nếu đang thêm mới sản phẩm (mã vạch chưa tồn tại)
             if not existed:
-                if self.db.add_product(barcode, name):
+                added = self.db.add_product(barcode, name)
+                if added:
+                    self.db.delete_all_units_by_barcode(barcode)
+                    for u in units_temp:
+                        self.db.add_unit(barcode, u[2], u[3])
                     messagebox.showinfo("Thành công", "Đã thêm sản phẩm!")
                     dialog.destroy()
                     self.refresh_products()
                 else:
                     messagebox.showerror("Lỗi", "Trùng mã vạch!")
                 return
-            # Nếu barcode đã tồn tại và không phải sửa đúng sản phẩm đó
+            # Nếu mã vạch đã tồn tại nhưng không phải sửa sản phẩm đó
             messagebox.showerror("Lỗi", "Trùng mã vạch!")
 
         ttk.Button(
@@ -613,6 +614,8 @@ class KiotCheckApp:
             style="danger.TButton",
             width=12,
         ).pack(side=LEFT, padx=8)
+
+    # ----
 
     # Scanner methods
     def scan_barcode(self, event=None):

@@ -41,14 +41,12 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute('''
-                INSERT INTO products (barcode, name)
-                VALUES (?, ?)
-            ''', (barcode, name))
+            cursor.execute("INSERT INTO products (barcode, name) VALUES (?, ?)", (barcode, name))
             conn.commit()
             return True
-        except sqlite3.IntegrityError:
-            return False  # Trùng barcode
+        except Exception as e:
+            # Nếu bị trùng mã vạch (UNIQUE constraint), trả về False
+            return False
         finally:
             conn.close()
 
@@ -151,5 +149,13 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute('DELETE FROM units WHERE id=?', (unit_id,))
+        conn.commit()
+        conn.close()
+    
+    def delete_all_units_by_barcode(self, barcode):
+        """Xóa tất cả đơn vị tính của một sản phẩm theo barcode"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM units WHERE barcode=?", (barcode,))
         conn.commit()
         conn.close()
