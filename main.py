@@ -134,58 +134,36 @@ class KiotCheckApp:
         self.refresh_products()
 
     def setup_scanner_tab(self):
-        """Tab quét mã vạch"""
-        # Title
-        title_frame = ttk.Frame(self.scanner_frame)
-        title_frame.pack(fill=X, padx=20, pady=20)
+        # Frame căn giữa
+        center_frame = ttk.Frame(self.scanner_frame)
+        center_frame.pack(expand=True, fill=tk.BOTH)
+        center_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         title_label = ttk.Label(
-            title_frame, text="🔍 QUÉT MÃ VẠCH SẢN PHẨM", font=("Arial", 16, "bold")
+            center_frame, text="🔍 QUÉT MÃ VẠCH SẢN PHẨM", font=("Arial", 24, "bold")
         )
-        title_label.pack()
-
-        # Scanner input
-        scanner_frame = ttk.Frame(self.scanner_frame)
-        scanner_frame.pack(fill=X, padx=20, pady=10)
+        title_label.pack(pady=30)
 
         ttk.Label(
-            scanner_frame, text="Nhập hoặc quét mã vạch:", font=("Arial", 12)
-        ).pack(anchor=W)
+            center_frame, text="Nhập hoặc quét mã vạch:", font=("Arial", 16)
+        ).pack(pady=10)
 
         self.barcode_var = tk.StringVar()
         barcode_entry = ttk.Entry(
-            scanner_frame, textvariable=self.barcode_var, font=("Arial", 14), width=30
+            center_frame, textvariable=self.barcode_var, font=("Arial", 18), width=32
         )
-        barcode_entry.pack(pady=5)
+        barcode_entry.pack(pady=12)
         barcode_entry.bind("<Return>", self.scan_barcode)
         barcode_entry.focus()
 
         ttk.Button(
-            scanner_frame,
+            center_frame,
             text="🔍 Tìm kiếm",
             bootstyle=PRIMARY,
             command=self.scan_barcode,
-        ).pack(pady=10)
-
-        # Kết quả
-        self.result_frame = ttk.LabelFrame(self.scanner_frame, text="Kết quả tìm kiếm")
-        self.result_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
-
-        # Treeview cho kết quả
-        result_columns = ("name", "unit", "price")
-        self.result_tree = ttk.Treeview(
-            self.result_frame, columns=result_columns, show="headings"
-        )
-
-        self.result_tree.heading("name", text="Tên sản phẩm")
-        self.result_tree.heading("unit", text="Đơn vị")
-        self.result_tree.heading("price", text="Giá")
-
-        self.result_tree.column("name", width=400)
-        self.result_tree.column("unit", width=100)
-        self.result_tree.column("price", width=100)
-
-        self.result_tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+            style="info.TButton",
+            width=16
+        ).pack(pady=18)
 
     def setup_excel_tab(self):
         """Tab import/export Excel"""
@@ -624,10 +602,6 @@ class KiotCheckApp:
         if not barcode:
             return
 
-        # Xóa kết quả cũ
-        for item in self.result_tree.get_children():
-            self.result_tree.delete(item)
-
         # Xóa/thêm label thêm mới nếu có
         if hasattr(self, "add_new_label") and self.add_new_label:
             self.add_new_label.destroy()
@@ -789,14 +763,20 @@ class KiotCheckApp:
         )
 
         if file_path:
-            success, message = self.excel_handler.import_from_excel(file_path)
-
+            result = self.excel_handler.import_from_excel(file_path)
+            if isinstance(result, tuple) and len(result) == 3:
+                success, message, error_list = result
+            else:
+                success, message = result
+                error_list = []
+            self.log_message(message)
+            if error_list:
+                for err in error_list:
+                    self.log_message(f"❌ {err}")
             if success:
-                self.log_message(f"✅ {message}")
                 self.refresh_products()
                 messagebox.showinfo("Thành công", message)
             else:
-                self.log_message(f"❌ {message}")
                 messagebox.showerror("Lỗi", message)
 
     def export_excel(self):
