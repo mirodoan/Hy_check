@@ -45,24 +45,33 @@ class KiotCheckApp:
 
     def setup_ui(self):
         """Thiết lập giao diện chính"""
+        style = ttk.Style()
+        style.configure("TNotebook.Tab", font=("Arial", 18, "bold"), padding=[20, 10])
+        style.map("TNotebook.Tab",
+            background=[("selected", "#2fd754"), ("!selected", "#dee7ed")],
+            foreground=[("selected", "#fff"), ("!selected", "#333")]
+        )
         # Tạo notebook (tabs)
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=BOTH, expand=True, padx=10, pady=10)
 
+        # Tab import/export
+        self.excel_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.excel_frame, text="📊 Import/Export")
+
         # Tab quản lý sản phẩm
         self.product_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.product_frame, text="📦 Quản lý sản phẩm")
-        self.setup_product_tab()
 
         # Tab quét mã vạch
         self.scanner_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.scanner_frame, text="🔍 Quét mã vạch")
+
+        self.setup_excel_tab()
+        self.setup_product_tab()
         self.setup_scanner_tab()
 
-        # Tab import/export
-        self.excel_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.excel_frame, text="📊 Import/Export")
-        self.setup_excel_tab()
+        
 
     def setup_product_tab(self):
         """Tab quản lý sản phẩm"""
