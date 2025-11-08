@@ -26,7 +26,7 @@ from database import Database
 from excel_handler import ExcelHandler
 
 
-class KiotCheckApp:
+class HyCheckApp:
     def __init__(self):
         # Khởi tạo database và excel handler
         self.db = Database()
@@ -37,7 +37,7 @@ class KiotCheckApp:
             self.root = tb.Window(themename="cosmo")
         else:
             self.root = tk.Tk()
-        self.root.title("KiotCheck - Quản lý sản phẩm")
+        self.root.title("HyCheck - Quản lý sản phẩm")
         self.root.geometry("1000x700")
         self.root.minsize(800, 600)
 
@@ -838,5 +838,5 @@ class KiotCheckApp:
 
 
 if __name__ == "__main__":
-    app = KiotCheckApp()
+    app = HyCheckApp()
     app.run()
