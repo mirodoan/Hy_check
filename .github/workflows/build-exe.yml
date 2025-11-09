@@ -24,7 +24,7 @@ jobs:
 
       - name: Build EXE with PyInstaller
         run: |
-          pyinstaller --onefile main.py
+          pyinstaller --onefile main.py --add-data "Hy.png;." --add-data "Dan.png;."
 
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4

@@ -1,8 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import platform
+import sys, os
 FONT_FAMILY = "Segoe UI" if platform.system() == "Windows" else "Arial"
 from PIL import Image, ImageTk
+
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 try:
     import ttkbootstrap as tb
@@ -155,8 +161,8 @@ class HyCheckApp:
 
     def setup_scanner_tab(self):
         # Lưu ảnh gốc để resize động
-        self.img_left_src = Image.open("Hy.png")
-        self.img_right_src = Image.open("Dan.png")
+        self.img_left_src = Image.open(resource_path("Hy.png"))
+        self.img_right_src = Image.open(resource_path("Dan.png"))
 
         # Tạo label cho ảnh
         self.label_left = tk.Label(self.scanner_frame, borderwidth=0)
