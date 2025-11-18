@@ -1,7 +1,13 @@
 import sqlite3
 import os
 from pathlib import Path
+import unicodedata
 
+def remove_accents(text):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
 class Database:
     def __init__(self, db_path="kiot_check.db"):
         self.db_path = db_path
@@ -84,18 +90,16 @@ class Database:
         conn.close()
         return units
     
-    def search_products(self, search_term):
+    def search_products(self, keyword):
         """Tìm kiếm sản phẩm theo tên hoặc barcode"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT * FROM products 
-            WHERE name LIKE ? OR barcode LIKE ?
-            ORDER BY name
-        ''', (f'%{search_term}%', f'%{search_term}%'))
-        products = cursor.fetchall()
-        conn.close()
-        return products
+        keyword = remove_accents(keyword.lower())
+        results = []
+        for product in self.get_all_products():
+            name_no_accents = remove_accents(product[2].lower())
+            barcode_no_accents = remove_accents(product[1].lower())
+            if keyword in name_no_accents or keyword in barcode_no_accents:
+                results.append(product)
+        return results
     
     def get_product_by_barcode(self, barcode):
         """Lấy sản phẩm theo barcode"""

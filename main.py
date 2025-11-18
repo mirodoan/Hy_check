@@ -131,7 +131,7 @@ class HyCheckApp:
         # Tạo Treeview với 3 cột: ID, mã vạch, tên sản phẩm, căn thẳng hàng
         columns = ("barcode", "name")
         self.product_tree = ttk.Treeview(
-            tree_frame, columns=columns, show="tree headings"
+            tree_frame, columns=columns, show="tree headings", selectmode="extended"
         )
         # Thiết lập style header lớn, đậm
         style = ttk.Style()
@@ -319,40 +319,39 @@ class HyCheckApp:
         self.product_dialog()
 
     def delete_product(self):
-        """Xóa sản phẩm"""
         selected = self.product_tree.selection()
         if not selected:
             messagebox.showwarning("Cảnh báo", "Vui lòng chọn sản phẩm cần xóa!")
             return
-        item = self.product_tree.item(selected[0])
-        barcode = item["values"][0]
-        product_name = item["values"][1] if len(item["values"]) > 1 else ""
 
-        # Custom popup xác nhận xoá
+        products_to_delete = []
+        for item_id in selected:
+            item = self.product_tree.item(item_id)
+            barcode = item["values"][0]
+            product_name = item["values"][1] if len(item["values"]) > 1 else ""
+            products_to_delete.append((barcode, product_name))
+
+        # Tạo popup xác nhận custom
         confirm = tk.Toplevel(self.root)
         confirm.title("Xác nhận xoá sản phẩm")
-        
-        # Tự động tính toán kích thước dựa trên màn hình
         screen_width = confirm.winfo_screenwidth()
         screen_height = confirm.winfo_screenheight()
-        w = min(800, int(screen_width * 0.5))  # 50% chiều rộng màn hình hoặc tối đa 800px
-        h = min(400, int(screen_height * 0.3))  # 30% chiều cao màn hình hoặc tối đa 400px
-        
+        w = min(800, int(screen_width * 0.5))
+        h = min(400, int(screen_height * 0.3))
         confirm.geometry(f"{w}x{h}")
         confirm.transient(self.root)
         confirm.grab_set()
-        confirm.resizable(True, True)  # Allow resizing
-        confirm.minsize(600, 250)     # Set minimum size
-        
-        # Căn giữa màn hình
+        confirm.resizable(True, True)
+        confirm.minsize(600, 250)
         confirm.update_idletasks()
         x = (screen_width // 2) - (w // 2)
         y = (screen_height // 2) - (h // 2)
         confirm.geometry(f"{w}x{h}+{x}+{y}")
 
+        names = "\n".join([f'- {name}' for _, name in products_to_delete])
         label = ttk.Label(
             confirm,
-            text=f'Bạn có chắc muốn xoá sản phẩm "{product_name}" không?',
+            text=f'Bạn có chắc muốn xoá {len(products_to_delete)} sản phẩm sau?\n{names}',
             font=(FONT_FAMILY, 18, "bold"),
             wraplength=550,
             anchor="center",
@@ -364,10 +363,11 @@ class HyCheckApp:
         btn_frame.pack(pady=10)
 
         def do_delete():
-            self.db.delete_product(barcode)
+            for barcode, _ in products_to_delete:
+                self.db.delete_product(barcode)
             self.refresh_products()
             confirm.destroy()
-            messagebox.showinfo("Thành công", f'Đã xoá sản phẩm "{product_name}"!')
+            messagebox.showinfo("Thành công", f'Đã xoá {len(products_to_delete)} sản phẩm!')
 
         ttk.Button(
             btn_frame, text="Không", command=confirm.destroy, style="danger.TButton", width=12
