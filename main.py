@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import platform
 import sys, os
-FONT_FAMILY = "Segoe UI" if platform.system() == "Windows" else "Arial"
+FONT_FAMILY = "Segoe UI Variable Text" if platform.system() == "Windows" else "Helvetica"
 from PIL import Image, ImageTk
 
 def resource_path(relative_path):
@@ -49,6 +49,14 @@ class HyCheckApp:
         self.root.title("HyCheck - Quản lý sản phẩm")
         self.root.geometry("1000x700")
         self.root.minsize(800, 600)
+        # Full màn hình + DPI đẹp trên Windows 10/11
+        if platform.system() == "Windows":
+            try:
+                from ctypes import windll
+                windll.shcore.SetProcessDpiAwareness(1)
+            except:
+                pass
+        self.root.state('zoomed')  # Mở toàn màn hình luôn – đẹp nhất!
 
         self.setup_ui()
 
@@ -161,8 +169,8 @@ class HyCheckApp:
 
     def setup_scanner_tab(self):
         # Lưu ảnh gốc để resize động
-        self.img_left_src = Image.open(resource_path("Hy.png"))
-        self.img_right_src = Image.open(resource_path("Dan.png"))
+        self.img_left_src = Image.open(resource_path("assets/Hy.png"))
+        self.img_right_src = Image.open(resource_path("assets/Dan.png"))
 
         # Tạo label cho ảnh
         self.label_left = tk.Label(self.scanner_frame, borderwidth=0)
@@ -399,11 +407,13 @@ class HyCheckApp:
         w = min(1200, int(screen_width * 0.75))  # 75% chiều rộng màn hình hoặc tối đa 1200px
         h = min(750, int(screen_height * 0.65))  # 65% chiều cao màn hình hoặc tối đa 750px
         
-        dialog.geometry(f"{w}x{h}")
+        dialog.geometry("1350x820")
         dialog.transient(self.root)
         dialog.grab_set()
         dialog.resizable(True, True)  # Allow resizing
-        dialog.minsize(1200, 800)    # Set larger minimum size
+        dialog.minsize(1150, 720)
+        dialog.update_idletasks()
+        dialog.geometry(f"1350x820+{int((dialog.winfo_screenwidth()-1350)/2)}+{int((dialog.winfo_screenheight()-820)/2)}")
         
         # Căn giữa màn hình
         dialog.update_idletasks()
@@ -574,16 +584,25 @@ class HyCheckApp:
                 btn_frame, text="Xoá", command=do_delete, style="success.TButton", width=12
             ).pack(side=LEFT, padx=10)
 
-        unit_tree.bind("<Button-1>", lambda event: (
-            lambda region, col, row: show_delete_unit_popup(row, unit_tree.item(row)["values"][0])
-            if region == "cell" and col == "#3" and row else None
-        )(
-            unit_tree.identify("region", event.x, event.y),
-            unit_tree.identify_column(event.x),
-            unit_tree.identify_row(event.y)
-        ))
+        def on_unit_click(event):
+            region = unit_tree.identify("region", event.x, event.y)
+            if region != "cell":
+                return
+            col = unit_tree.identify_column(event.x)
+            row = unit_tree.identify_row(event.y)
+            if col == "#3" and row:  # Cột "Thao tác"
+                try:
+                    idx = int(row)
+                    if 0 <= idx < len(units_temp):
+                        unit_name = units_temp[idx][2]
+                        show_delete_unit_popup(idx, unit_name)
+                except:
+                    pass  # Tránh lỗi nếu row rỗng
 
-        load_units()
+        # Bind sự kiện sau khi Treeview đã được tạo xong
+        unit_tree.bind("<Button-1>", on_unit_click)
+
+        load_units()  # Load dữ liệu sau khi đã bind xong
 
         ttk.Button(
             add_unit_frame,
@@ -832,7 +851,7 @@ class HyCheckApp:
 
             def open_add():
                 popup.destroy()
-                self.product_dialog(barcode=barcode, values=[barcode, "", "", "", ""])
+                self.product_dialog(barcode=barcode)
 
             btn_frame = ttk.Frame(popup)
             btn_frame.pack(pady=40)
