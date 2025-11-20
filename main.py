@@ -2,34 +2,38 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import platform
 import sys, os
-FONT_FAMILY = "Segoe UI Variable Text" if platform.system() == "Windows" else "Helvetica"
+import webbrowser
 from PIL import Image, ImageTk
+
+FONT_FAMILY = "Segoe UI Variable Text" if platform.system() == "Windows" else "Helvetica"
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
+# ==================== DPI AWARENESS – BẮT BUỘC CHO .EXE ĐẸP ====================
+if platform.system() == "Windows" and getattr(sys, 'frozen', False):
+    import ctypes
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)   # Per-monitor v2 – TỐT NHẤT
+    except:
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except:
+            pass
+
+# ==================== TTKBOOTSTRAP ====================
 try:
     import ttkbootstrap as tb
     from ttkbootstrap.constants import *
-
     BOOTSTRAP_AVAILABLE = True
 except ImportError:
     BOOTSTRAP_AVAILABLE = False
-    # Fallback constants
-    SUCCESS = "success"
-    WARNING = "warning"
-    DANGER = "danger"
-    PRIMARY = "primary"
-    INFO = "info"
-    BOTH = tk.BOTH
-    X = tk.X
-    Y = tk.Y
-    LEFT = tk.LEFT
-    RIGHT = tk.RIGHT
+    SUCCESS = "success"; WARNING = "warning"; DANGER = "danger"
+    PRIMARY = "primary"; INFO = "info"
+    BOTH = tk.BOTH; LEFT = tk.LEFT; RIGHT = tk.RIGHT
     VERTICAL = tk.VERTICAL
-    W = tk.W
 
 from database import Database
 from excel_handler import ExcelHandler
@@ -37,26 +41,24 @@ from excel_handler import ExcelHandler
 
 class HyCheckApp:
     def __init__(self):
-        # Khởi tạo database và excel handler
         self.db = Database()
         self.excel_handler = ExcelHandler(self.db)
 
-        # Tạo main window với ttkbootstrap theme
         if BOOTSTRAP_AVAILABLE:
             self.root = tb.Window(themename="cosmo")
         else:
             self.root = tk.Tk()
+            
         self.root.title("HyCheck - Quản lý sản phẩm")
-        self.root.geometry("1000x700")
-        self.root.minsize(800, 600)
-        # Full màn hình + DPI đẹp trên Windows 10/11
-        if platform.system() == "Windows":
-            try:
-                from ctypes import windll
-                windll.shcore.SetProcessDpiAwareness(1)
-            except:
-                pass
-        self.root.state('zoomed')  # Mở toàn màn hình luôn – đẹp nhất!
+        self.root.state('zoomed')           # Toàn màn hình ngay từ đầu
+        self.root.minsize(900, 600)
+
+        # ==================== STYLE TOÀN CỤC – FIX ROWHEIGHT BỊ MẤT KHI BUILD .EXE ====================
+        style = ttk.Style()
+        style.configure("Treeview", font=(FONT_FAMILY, 16), rowheight=68)        # <<< QUAN TRỌNG NHẤT
+        style.configure("Treeview.Heading", font=(FONT_FAMILY, 17, "bold"))
+        style.configure("TButton", font=(FONT_FAMILY, 14))
+        style.configure("TNotebook.Tab", font=(FONT_FAMILY, 16, "bold"), padding=[24, 12])
 
         self.setup_ui()
 
@@ -98,71 +100,40 @@ class HyCheckApp:
 
     def setup_product_tab(self):
         """Tab quản lý sản phẩm"""
-        # Frame cho buttons
         btn_frame = ttk.Frame(self.product_frame)
-        btn_frame.pack(fill=X, padx=10, pady=5)
+        btn_frame.pack(fill=X, padx=12, pady=8)
 
-        # Buttons
-        ttk.Button(
-            btn_frame,
-            text="➕ Thêm sản phẩm",
-            bootstyle=SUCCESS,
-            command=self.add_product,
-        ).pack(side=LEFT, padx=5)
-        ttk.Button(
-            btn_frame, text="✏️ Sửa", bootstyle=WARNING, command=self.edit_product
-        ).pack(side=LEFT, padx=5)
-        ttk.Button(
-            btn_frame, text="🗑️ Xóa", bootstyle=DANGER, command=self.delete_product
-        ).pack(side=LEFT, padx=5)
-        ttk.Button(btn_frame, text="🔄 Refresh", command=self.refresh_products).pack(
-            side=LEFT, padx=5
-        )
+        ttk.Button(btn_frame, text="Thêm sản phẩm", bootstyle=SUCCESS, command=self.add_product).pack(side=LEFT, padx=5)
+        ttk.Button(btn_frame, text="Sửa", bootstyle=WARNING, command=self.edit_product).pack(side=LEFT, padx=5)
+        ttk.Button(btn_frame, text="Xóa", bootstyle=DANGER, command=self.delete_product).pack(side=LEFT, padx=5)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_products).pack(side=LEFT, padx=5)
 
-        # Search frame
+        # Search
         search_frame = ttk.Frame(self.product_frame)
-        search_frame.pack(fill=X, padx=10, pady=5)
-
-        ttk.Label(search_frame, text="🔍 Tìm kiếm:").pack(side=LEFT, padx=5)
+        search_frame.pack(fill=X, padx=12, pady=6)
+        ttk.Label(search_frame, text="Tìm kiếm:", font=(FONT_FAMILY, 16)).pack(side=LEFT, padx=5)
         self.search_var = tk.StringVar()
-        # Sử dụng trace_add thay cho trace (Python >=3.7, bắt buộc ở 3.14)
-        self.search_var.trace_add("write", lambda *args: self.on_search_change())
-        search_entry = ttk.Entry(
-            search_frame, textvariable=self.search_var, font=(FONT_FAMILY, 16)
-        )
-        search_entry.pack(side=LEFT, fill=X, expand=True, padx=5)
+        self.search_var.trace_add("write", lambda *a: self.on_search_change())
+        ttk.Entry(search_frame, textvariable=self.search_var, font=(FONT_FAMILY, 16)).pack(side=LEFT, fill=X, expand=True, padx=5)
 
-        # Treeview cho danh sách sản phẩm
+        # Treeview
         tree_frame = ttk.Frame(self.product_frame)
-        tree_frame.pack(fill=BOTH, expand=True, padx=10, pady=5)
+        tree_frame.pack(fill=BOTH, expand=True, padx=12, pady=8)
 
-        # Tạo Treeview với 3 cột: ID, mã vạch, tên sản phẩm, căn thẳng hàng
-        columns = ("barcode", "name")
-        self.product_tree = ttk.Treeview(
-            tree_frame, columns=columns, show="tree headings", selectmode="extended"
-        )
-        # Thiết lập style header lớn, đậm
-        style = ttk.Style()
-        style.configure("Treeview.Heading", font=(FONT_FAMILY, 18, "bold"))
-        style.configure("Treeview", font=(FONT_FAMILY, 16))
-        style.configure("Treeview", rowheight=60)  # Tăng chiều cao dòng lên 60px để hiển thị rõ hơn
-        # Thiết lập column widths và căn giữa/thẳng hàng
-        self.product_tree.column("#0", width=80, anchor="center", stretch=False)
-        self.product_tree.column("barcode", width=260, anchor="center", stretch=False, minwidth=220)
-        self.product_tree.column("name", width=520, anchor="w", stretch=True, minwidth=320)
-        # Đảm bảo header style lớn
-        self.product_tree.heading("#0", text="ID", anchor="center")
-        self.product_tree.heading("barcode", text="Mã vạch", anchor="center")
-        self.product_tree.heading("name", text="Tên sản phẩm", anchor="w")
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(
-            tree_frame, orient=VERTICAL, command=self.product_tree.yview
-        )
-        self.product_tree.configure(yscrollcommand=scrollbar.set)
-        # Pack treeview và scrollbar
+        self.product_tree = ttk.Treeview(tree_frame, columns=("barcode", "name"), show="tree headings", selectmode="extended")
+        # Áp dụng style đã set ở trên → rowheight = 68px chắc chắn
+        self.product_tree.column("#0", width=90, anchor="center")
+        self.product_tree.column("barcode", width=300, anchor="center")
+        self.product_tree.column("name", width=600, anchor="w", stretch=True)
+        self.product_tree.heading("#0", text="ID")
+        self.product_tree.heading("barcode", text="Mã vạch")
+        self.product_tree.heading("name", text="Tên sản phẩm")
+
+        scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.product_tree.yview)
+        self.product_tree.configure(yscrollcommand=scroll.set)
         self.product_tree.pack(side=LEFT, fill=BOTH, expand=True)
-        scrollbar.pack(side=RIGHT, fill=Y)
-        # Load dữ liệu ban đầu
+        scroll.pack(side=RIGHT, fill=Y)
+
         self.refresh_products()
 
     
@@ -264,7 +235,7 @@ class HyCheckApp:
         log_frame = ttk.LabelFrame(self.excel_frame, text="📝 Log hoạt động")
         log_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
 
-        self.log_text = tk.Text(log_frame, height=10, font=("Consolas", 10))
+        self.log_text = tk.Text(log_frame, height=2, font=("Consolas", 10))
         log_scrollbar = ttk.Scrollbar(
             log_frame, orient=VERTICAL, command=self.log_text.yview
         )
@@ -344,8 +315,8 @@ class HyCheckApp:
         confirm.title("Xác nhận xoá sản phẩm")
         screen_width = confirm.winfo_screenwidth()
         screen_height = confirm.winfo_screenheight()
-        w = min(800, int(screen_width * 0.5))
-        h = min(400, int(screen_height * 0.3))
+        w = max(600, min(800, int(screen_width * 0.5)))
+        h = max(250, min(400, int(screen_height * 0.3)))
         confirm.geometry(f"{w}x{h}")
         confirm.transient(self.root)
         confirm.grab_set()
@@ -404,22 +375,19 @@ class HyCheckApp:
         # Tự động tính toán kích thước dựa trên màn hình
         screen_width = dialog.winfo_screenwidth()
         screen_height = dialog.winfo_screenheight()
-        w = min(1200, int(screen_width * 0.75))  # 75% chiều rộng màn hình hoặc tối đa 1200px
-        h = min(750, int(screen_height * 0.65))  # 65% chiều cao màn hình hoặc tối đa 750px
-        
-        dialog.geometry("1350x820")
-        dialog.transient(self.root)
-        dialog.grab_set()
-        dialog.resizable(True, True)  # Allow resizing
-        dialog.minsize(1150, 720)
-        dialog.update_idletasks()
-        dialog.geometry(f"1350x820+{int((dialog.winfo_screenwidth()-1350)/2)}+{int((dialog.winfo_screenheight()-820)/2)}")
-        
+
+        w = max(1000, int(screen_width * 0.50))
+        h = max(700, int(screen_height * 0.60))
+
         # Căn giữa màn hình
-        dialog.update_idletasks()
-        x = (screen_width // 2) - (w // 2)
-        y = (screen_height // 2) - (h // 2)
+        x = (screen_width - w) // 2
+        y = (screen_height - h) // 2
+
+        # Set kích thước động
         dialog.geometry(f"{w}x{h}+{x}+{y}")
+        
+        # Đảm bảo không bao giờ nhỏ quá mức cho phép
+        dialog.minsize(1000, 700)
 
         barcode_var = tk.StringVar(value=values[0] if values else (barcode or ""))
         name_var = tk.StringVar(value=values[1] if values else "")
@@ -438,12 +406,12 @@ class HyCheckApp:
         name_entry.grid(row=1, column=1, sticky="ew", padx=(16,0), pady=8)
         input_frame.columnconfigure(1, weight=1)
 
-        unit_frame = ttk.LabelFrame(dialog)
-        unit_frame.pack(fill=BOTH, expand=True, padx=30, pady=20)
+        unit_frame = ttk.LabelFrame(dialog, text="Đơn vị tính & Giá bán")
+        unit_frame.pack(fill=BOTH, expand=True, padx=30, pady=10)
         ttk.Label(unit_frame, text="Đơn vị tính & Giá bán", font=(FONT_FAMILY, 19, "bold")).pack(anchor=W, padx=12, pady=12)
 
         add_unit_frame = ttk.Frame(unit_frame)
-        add_unit_frame.pack(fill=X, padx=8, pady=10)
+        add_unit_frame.pack(fill=X, padx=8, pady=5)
         add_unit_var = tk.StringVar()
         add_price_var = tk.StringVar()
 
@@ -479,22 +447,27 @@ class HyCheckApp:
 
         # Treeview đơn vị tính
         tree_container = ttk.Frame(unit_frame)
-        tree_container.pack(fill=BOTH, expand=True, padx=10, pady=15)
-        
-        style = ttk.Style()
-        style.configure("Treeview.Heading", font=(FONT_FAMILY, 16, "bold"))
-        style.configure("Treeview", font=(FONT_FAMILY, 14), rowheight=35)
-        unit_tree = ttk.Treeview(tree_container, columns=("unit", "price", "action"), show="headings", height=4)
+        tree_container.pack(fill=BOTH, expand=True, padx=10, pady=(0,10))
+
+        unit_tree = ttk.Treeview(
+            tree_container,
+            columns=("unit", "price", "action"),
+            show="headings",
+            height=4                      # ← CHỈ HIỆN 4 DÒNG THÔI – ĐẸP + GỌN!
+        )
+
+        # Dùng style toàn cục đã set rowheight=68 → chữ to, đẹp
         unit_tree.heading("unit", text="Đơn vị tính")
         unit_tree.heading("price", text="Giá bán (VND)")
-        unit_tree.heading("action", text="Thao tác")
-        unit_tree.column("unit", width=300, anchor="center")
-        unit_tree.column("price", width=300, anchor="center")
-        unit_tree.column("action", width=150, anchor="center")
-        unit_tree.pack(side=LEFT, fill=BOTH, expand=True)
-        unit_scroll = ttk.Scrollbar(tree_container, orient=VERTICAL, command=unit_tree.yview)
-        unit_tree.configure(yscrollcommand=unit_scroll.set)
-        unit_scroll.pack(side=RIGHT, fill=Y)
+        unit_tree.heading("action", text="")
+        unit_tree.column("unit", width=320, anchor="center")
+        unit_tree.column("price", width=320, anchor="center")
+        unit_tree.column("action", width=120, anchor="center")
+
+        unit_tree.pack(side="left", fill="both", expand=True)
+        scroll_y = ttk.Scrollbar(tree_container, orient="vertical", command=unit_tree.yview)
+        scroll_y.pack(side="right", fill="y")
+        unit_tree.configure(yscrollcommand=scroll_y.set)
 
         def load_units():
             unit_tree.delete(*unit_tree.get_children())
@@ -548,8 +521,8 @@ class HyCheckApp:
             # Tự động tính toán kích thước dựa trên màn hình
             screen_width = popup.winfo_screenwidth()
             screen_height = popup.winfo_screenheight()
-            w = min(700, int(screen_width * 0.45))  # 45% chiều rộng màn hình hoặc tối đa 700px
-            h = min(350, int(screen_height * 0.25))  # 25% chiều cao màn hình hoặc tối đa 350px
+            w = max(550, min(700, int(screen_width * 0.45)))  # 45% chiều rộng màn hình hoặc tối đa 700px
+            h = max(280, min(350, int(screen_height * 0.25)))  # 25% chiều cao màn hình hoặc tối đa 350px
             
             popup.geometry(f"{w}x{h}")
             popup.transient(dialog)
@@ -637,7 +610,7 @@ class HyCheckApp:
 
         # Buttons frame
         btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(pady=20)
+        btn_frame.pack(pady=15)
 
         def save_product():
             barcode = barcode_var.get().strip()
@@ -718,20 +691,20 @@ class HyCheckApp:
             # Tự động tính toán kích thước dựa trên màn hình
             screen_width = popup.winfo_screenwidth()
             screen_height = popup.winfo_screenheight()
-            w = min(1000, int(screen_width * 0.65))  # 65% chiều rộng màn hình hoặc tối đa 1000px
-            h = min(600, int(screen_height * 0.55))  # 55% chiều cao màn hình hoặc tối đa 600px
+            # Popup xem thông tin có thể nhỏ hơn form sửa một chút (50% width, 60% height)
+            w = max(900, int(screen_width * 0.50))
+            h = max(600, int(screen_height * 0.60))
             
-            popup.geometry(f"{w}x{h}")
+            x = (screen_width - w) // 2
+            y = (screen_height - h) // 2
+            
+            popup.geometry(f"{w}x{h}+{x}+{y}")
+            popup.minsize(900, 600)
+            # --------------------
+            
             popup.transient(self.root)
             popup.grab_set()
             popup.resizable(True, True)  # Allow resizing
-            popup.minsize(1100, 700)     # Set larger minimum size
-            
-            # Căn giữa màn hình
-            popup.update_idletasks()
-            x = (screen_width // 2) - (w // 2)
-            y = (screen_height // 2) - (h // 2)
-            popup.geometry(f"{w}x{h}+{x}+{y}")
 
             # Thông tin barcode, tên sản phẩm (dùng grid cho thẳng hàng)
             info_frame = ttk.Frame(popup)
@@ -757,7 +730,7 @@ class HyCheckApp:
             style.configure("Treeview", rowheight=35)
 
             unit_tree = ttk.Treeview(
-                tree_container, columns=("unit", "price"), show="headings", height=4
+                tree_container, columns=("unit", "price"), show="headings", height=2
             )
             unit_tree.heading("unit", text="Đơn vị tính")
             unit_tree.heading("price", text="Giá bán (VND)")
