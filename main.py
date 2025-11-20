@@ -55,8 +55,19 @@ class HyCheckApp:
 
         # ==================== STYLE TOÀN CỤC – FIX ROWHEIGHT BỊ MẤT KHI BUILD .EXE ====================
         style = ttk.Style()
-        style.configure("Treeview", font=(FONT_FAMILY, 16), rowheight=68)        # <<< QUAN TRỌNG NHẤT
-        style.configure("Treeview.Heading", font=(FONT_FAMILY, 17, "bold"))
+        
+        # 1. Style cho bảng sản phẩm chính (Product.Treeview)
+        style.configure("Product.Treeview", font=(FONT_FAMILY, 16), rowheight=68)
+        style.configure("Product.Treeview.Heading", font=(FONT_FAMILY, 17, "bold"))
+
+        # 2. Style cho bảng đơn vị tính trong dialog (Unit.Treeview)
+        style.configure("Unit.Treeview", font=(FONT_FAMILY, 30), rowheight=90)
+        style.configure("Unit.Treeview.Heading", font=(FONT_FAMILY, 30, "bold"))
+
+        # 3. Style cho bảng scan (Scan.Treeview)
+        style.configure("Scan.Treeview", font=(FONT_FAMILY, 14), rowheight=40)
+        style.configure("Scan.Treeview.Heading", font=(FONT_FAMILY, 16, "bold"))
+
         style.configure("TButton", font=(FONT_FAMILY, 14))
         style.configure("TNotebook.Tab", font=(FONT_FAMILY, 16, "bold"), padding=[24, 12])
 
@@ -74,7 +85,7 @@ class HyCheckApp:
         self.notebook.pack(fill=BOTH, expand=True, padx=10, pady=10)
 
         style.configure("Treeview.Heading", font=(FONT_FAMILY, 17, "bold"))
-        style.configure("Treeview", font=(FONT_FAMILY, 16), rowheight=60)
+        # style.configure("Treeview", font=(FONT_FAMILY, 16), rowheight=60)  <-- BỎ GLOBAL
         style.configure("TButton", font=(FONT_FAMILY, 14))
 
         # Tạo notebook (tabs)
@@ -120,7 +131,7 @@ class HyCheckApp:
         tree_frame = ttk.Frame(self.product_frame)
         tree_frame.pack(fill=BOTH, expand=True, padx=12, pady=8)
 
-        self.product_tree = ttk.Treeview(tree_frame, columns=("barcode", "name"), show="tree headings", selectmode="extended")
+        self.product_tree = ttk.Treeview(tree_frame, columns=("barcode", "name"), show="tree headings", selectmode="extended", style="Product.Treeview")
         # Áp dụng style đã set ở trên → rowheight = 68px chắc chắn
         self.product_tree.column("#0", width=90, anchor="center")
         self.product_tree.column("barcode", width=300, anchor="center")
@@ -235,7 +246,7 @@ class HyCheckApp:
         log_frame = ttk.LabelFrame(self.excel_frame, text="📝 Log hoạt động")
         log_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
 
-        self.log_text = tk.Text(log_frame, height=2, font=("Consolas", 10))
+        self.log_text = tk.Text(log_frame, height=5, font=("Consolas", 10))
         log_scrollbar = ttk.Scrollbar(
             log_frame, orient=VERTICAL, command=self.log_text.yview
         )
@@ -315,8 +326,8 @@ class HyCheckApp:
         confirm.title("Xác nhận xoá sản phẩm")
         screen_width = confirm.winfo_screenwidth()
         screen_height = confirm.winfo_screenheight()
-        w = max(600, min(800, int(screen_width * 0.5)))
-        h = max(250, min(400, int(screen_height * 0.3)))
+        w = max(600, min(600, int(screen_width * 0.5)))
+        h = max(250, min(300, int(screen_height * 0.3)))
         confirm.geometry(f"{w}x{h}")
         confirm.transient(self.root)
         confirm.grab_set()
@@ -376,8 +387,8 @@ class HyCheckApp:
         screen_width = dialog.winfo_screenwidth()
         screen_height = dialog.winfo_screenheight()
 
-        w = max(1000, int(screen_width * 0.50))
-        h = max(700, int(screen_height * 0.60))
+        w = 860  # Fixed width that fits content without excess space
+        h = max(450, int(screen_height * 0.60))
 
         # Căn giữa màn hình
         x = (screen_width - w) // 2
@@ -387,9 +398,9 @@ class HyCheckApp:
         dialog.geometry(f"{w}x{h}+{x}+{y}")
         
         # Đảm bảo không bao giờ nhỏ quá mức cho phép
-        dialog.minsize(1000, 700)
+        dialog.minsize(700, 450)
 
-        barcode_var = tk.StringVar(value=values[0] if values else (barcode or ""))
+        barcode_var = tk.StringVar(value=str(values[0]) if values else (barcode or ""))
         name_var = tk.StringVar(value=values[1] if values else "")
 
         # Lấy đơn vị tính gốc từ DB (biến tạm, không thao tác trực tiếp DB khi thêm/xoá)
@@ -406,8 +417,8 @@ class HyCheckApp:
         name_entry.grid(row=1, column=1, sticky="ew", padx=(16,0), pady=8)
         input_frame.columnconfigure(1, weight=1)
 
-        unit_frame = ttk.LabelFrame(dialog, text="Đơn vị tính & Giá bán")
-        unit_frame.pack(fill=BOTH, expand=True, padx=30, pady=10)
+        unit_frame = ttk.LabelFrame(dialog, text="")
+        unit_frame.pack(fill=X, expand=False, padx=30, pady=10)
         ttk.Label(unit_frame, text="Đơn vị tính & Giá bán", font=(FONT_FAMILY, 19, "bold")).pack(anchor=W, padx=12, pady=12)
 
         add_unit_frame = ttk.Frame(unit_frame)
@@ -447,13 +458,21 @@ class HyCheckApp:
 
         # Treeview đơn vị tính
         tree_container = ttk.Frame(unit_frame)
-        tree_container.pack(fill=BOTH, expand=True, padx=10, pady=(0,10))
+        tree_container.pack(fill=X, expand=False, padx=10, pady=(0,10))
+
+        # --- FIX MACOS STYLING ---
+        # Cấu hình style ngay tại đây để đảm bảo ăn
+        style = ttk.Style()
+        style.configure("Unit.Treeview", font=(FONT_FAMILY, 30), rowheight=90)
+        style.configure("Unit.Treeview.Heading", font=(FONT_FAMILY, 30, "bold"))
+        # -------------------------
 
         unit_tree = ttk.Treeview(
             tree_container,
             columns=("unit", "price", "action"),
             show="headings",
-            height=4                      # ← CHỈ HIỆN 4 DÒNG THÔI – ĐẸP + GỌN!
+            height=5,                      # ← CHỈ HIỆN 2 DÒNG THÔI – ĐẸP + GỌN!
+            style="Unit.Treeview"          # <--- DÙNG STYLE RIÊNG
         )
 
         # Dùng style toàn cục đã set rowheight=68 → chữ to, đẹp
@@ -464,7 +483,7 @@ class HyCheckApp:
         unit_tree.column("price", width=320, anchor="center")
         unit_tree.column("action", width=120, anchor="center")
 
-        unit_tree.pack(side="left", fill="both", expand=True)
+        unit_tree.pack(side="left", fill="x", expand=False)
         scroll_y = ttk.Scrollbar(tree_container, orient="vertical", command=unit_tree.yview)
         scroll_y.pack(side="right", fill="y")
         unit_tree.configure(yscrollcommand=scroll_y.set)
@@ -521,8 +540,8 @@ class HyCheckApp:
             # Tự động tính toán kích thước dựa trên màn hình
             screen_width = popup.winfo_screenwidth()
             screen_height = popup.winfo_screenheight()
-            w = max(550, min(700, int(screen_width * 0.45)))  # 45% chiều rộng màn hình hoặc tối đa 700px
-            h = max(280, min(350, int(screen_height * 0.25)))  # 25% chiều cao màn hình hoặc tối đa 350px
+            w = max(550, min(700, int(screen_width * 0.3)))  # 45% chiều rộng màn hình hoặc tối đa 700px
+            h = max(280, min(350, int(screen_height * 0.2)))  # 25% chiều cao màn hình hoặc tối đa 350px
             
             popup.geometry(f"{w}x{h}")
             popup.transient(dialog)
@@ -624,7 +643,7 @@ class HyCheckApp:
                 return
             existed = self.db.get_product_by_barcode(barcode)
             # Nếu đang sửa sản phẩm (chỉ khi values truyền vào từ nút Sửa, không phải Thêm mới)
-            is_edit = values is not None and len(values) >= 2 and existed and barcode == values[0]
+            is_edit = values is not None and len(values) >= 2 and existed and str(barcode) == str(values[0])
             if is_edit:
                 self.db.update_product(barcode, name)
                 self.db.delete_all_units_by_barcode(barcode)
@@ -691,15 +710,15 @@ class HyCheckApp:
             # Tự động tính toán kích thước dựa trên màn hình
             screen_width = popup.winfo_screenwidth()
             screen_height = popup.winfo_screenheight()
-            # Popup xem thông tin có thể nhỏ hơn form sửa một chút (50% width, 60% height)
-            w = max(900, int(screen_width * 0.50))
-            h = max(600, int(screen_height * 0.60))
+            # Compact size to match add/edit dialog
+            w = 860  # Fixed width to match edit dialog
+            h = max(400, int(screen_height * 0.45))
             
             x = (screen_width - w) // 2
             y = (screen_height - h) // 2
             
             popup.geometry(f"{w}x{h}+{x}+{y}")
-            popup.minsize(900, 600)
+            popup.minsize(700, 400)
             # --------------------
             
             popup.transient(self.root)
@@ -708,7 +727,7 @@ class HyCheckApp:
 
             # Thông tin barcode, tên sản phẩm (dùng grid cho thẳng hàng)
             info_frame = ttk.Frame(popup)
-            info_frame.pack(fill=X, padx=30, pady=15)
+            info_frame.pack(fill=X, padx=30, pady=(15, 10))
             ttk.Label(info_frame, text="Mã vạch:", font=(FONT_FAMILY, 19, "bold")).grid(row=0, column=0, sticky="w", pady=8)
             ttk.Label(info_frame, text=product[1], font=(FONT_FAMILY, 17)).grid(row=0, column=1, sticky="ew", padx=(16,0), pady=8)
             ttk.Label(info_frame, text="Tên sản phẩm:", font=(FONT_FAMILY, 19, "bold")).grid(row=1, column=0, sticky="w", pady=8)
@@ -717,26 +736,29 @@ class HyCheckApp:
 
             # Đơn vị tính & Giá bán
             unit_frame = ttk.LabelFrame(popup)
-            unit_frame.pack(fill=BOTH, expand=True, padx=30, pady=15)
+            unit_frame.pack(fill=X, expand=False, padx=30, pady=10)
             ttk.Label(unit_frame, text="Đơn vị tính & Giá bán", font=(FONT_FAMILY, 19, "bold")).pack(anchor=W, padx=12, pady=12)
 
             # Create container for treeview and scrollbar
             tree_container = ttk.Frame(unit_frame)
-            tree_container.pack(fill=BOTH, expand=True, padx=10, pady=15)
+            tree_container.pack(fill=X, expand=False, padx=10, pady=(0, 10))
 
+            # style.configure("Treeview", rowheight=35) <-- BỎ GLOBAL
+
+            # --- FIX MACOS STYLING ---
             style = ttk.Style()
-            style.configure("Treeview.Heading", font=(FONT_FAMILY, 16, "bold"))
-            style.configure("Treeview", font=(FONT_FAMILY, 14))
-            style.configure("Treeview", rowheight=35)
+            style.configure("Scan.Treeview", font=(FONT_FAMILY, 14), rowheight=40)
+            style.configure("Scan.Treeview.Heading", font=(FONT_FAMILY, 16, "bold"))
+            # -------------------------
 
             unit_tree = ttk.Treeview(
-                tree_container, columns=("unit", "price"), show="headings", height=2
+                tree_container, columns=("unit", "price"), show="headings", height=5, style="Scan.Treeview"
             )
             unit_tree.heading("unit", text="Đơn vị tính")
             unit_tree.heading("price", text="Giá bán (VND)")
             unit_tree.column("unit", width=400, anchor="center")
             unit_tree.column("price", width=400, anchor="center")
-            unit_tree.pack(side=LEFT, fill=BOTH, expand=True)
+            unit_tree.pack(side=LEFT, fill=X, expand=False)
 
             unit_scroll = ttk.Scrollbar(
                 tree_container, orient=VERTICAL, command=unit_tree.yview
@@ -758,7 +780,7 @@ class HyCheckApp:
 
             # Google Images frame
             google_frame = ttk.Frame(popup)
-            google_frame.pack(fill=X, padx=30, pady=(15, 10))
+            google_frame.pack(fill=X, padx=30, pady=(10, 5))
             ttk.Label(
                 google_frame, text="Gợi ý ảnh Google Images:", font=(FONT_FAMILY, 15)
             ).pack(side=LEFT)
@@ -775,7 +797,7 @@ class HyCheckApp:
                 self.product_dialog(barcode=barcode, values=[product[1], product[2]])
 
             btn_frame = ttk.Frame(popup)
-            btn_frame.pack(pady=20)
+            btn_frame.pack(pady=10)
             ttk.Button(
                 btn_frame,
                 text="✏️ Sửa sản phẩm",
@@ -816,7 +838,7 @@ class HyCheckApp:
                 popup,
                 text=f"Không tìm thấy sản phẩm với mã vạch: {barcode}",
                 font=(FONT_FAMILY, 18),
-                wraplength=850,
+                wraplength=860,
                 anchor="center",
                 justify="center"
             )
