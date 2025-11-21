@@ -100,20 +100,20 @@ class HyCheckApp:
 
         # 2. ✅ FIX: Bảng đơn vị tính trong dialog - CHỮ CỰC TO (QUAN TRỌNG NHẤT!)
         style.configure("Unit.Treeview", 
-            font=(FONT_FAMILY, get_scaled_font(19)),  # ✅ TĂNG TỪ 16 LÊN 19
-            rowheight=62  # ✅ TĂNG TỪ 52 LÊN 62
+            font=(FONT_FAMILY, get_scaled_font(22)),  # ✅ TĂNG TỪ 19 LÊN 22
+            rowheight=68  # ✅ TĂNG TỪ 62 LÊN 68
         )
         style.configure("Unit.Treeview.Heading", 
-            font=(FONT_FAMILY, get_scaled_font(22), "bold")  # ✅ TĂNG TỪ 19 LÊN 22
+            font=(FONT_FAMILY, get_scaled_font(25), "bold")  # ✅ TĂNG TỪ 22 LÊN 25
         )
 
         # 3. ✅ FIX: Bảng scan - CHỮ CỰC TO (QUAN TRỌNG NHẤT!)
         style.configure("Scan.Treeview", 
-            font=(FONT_FAMILY, get_scaled_font(22)),  # ✅ TĂNG TỪ 18 LÊN 22
-            rowheight=68  # ✅ TĂNG TỪ 58 LÊN 68
+            font=(FONT_FAMILY, get_scaled_font(22)),
+            rowheight=68
         )
         style.configure("Scan.Treeview.Heading", 
-            font=(FONT_FAMILY, get_scaled_font(25), "bold")  # ✅ TĂNG TỪ 21 LÊN 25
+            font=(FONT_FAMILY, get_scaled_font(25), "bold")
         )
 
         style.configure("TButton", font=(FONT_FAMILY, get_scaled_font(12)))
@@ -347,7 +347,7 @@ class HyCheckApp:
         self.product_dialog()
 
     def delete_product(self):
-        """✅ FIX CUỐI CÙNG: Xóa sản phẩm - HIỂN THỊ ĐẦY ĐỦ"""
+        """✅ FIX: Xóa sản phẩm - SIZE LỚN HƠN"""
         selected = self.product_tree.selection()
         if not selected:
             messagebox.showwarning("Cảnh báo", "Vui lòng chọn sản phẩm cần xóa!")
@@ -371,51 +371,48 @@ class HyCheckApp:
         screen_height = confirm.winfo_screenheight()
         screen_width = confirm.winfo_screenwidth()
         
-        # ✅ FIX: Usable height an toàn cho Windows
         usable_height = screen_height - 100 if platform.system() == "Windows" else screen_height - 60
         
-        # ✅ FIX: Tính toán chính xác - FONT TO HƠN = CHIỀU CAO LỚN HƠN
-        title_height = 90  # Tăng từ 80
-        product_line_height = 38  # Tăng từ 32 (vì font 14pt cao hơn)
+        # ✅ FIX: Tăng size toàn bộ
+        title_height = 100  # ✅ TĂNG TỪ 90
+        product_line_height = 42  # ✅ TĂNG TỪ 38
         products_area_height = num_products * product_line_height
-        button_height = 110  # Tăng từ 100
-        total_padding = 70  # Tăng từ 60
+        button_height = 120  # ✅ TĂNG TỪ 110
+        total_padding = 80  # ✅ TĂNG TỪ 70
         
         needed_height = title_height + products_area_height + button_height + total_padding
         
-        # ✅ FIX: Auto adjust với safety margin
-        if needed_height > usable_height * 0.82:
-            h = int(usable_height * 0.78)
+        if needed_height > usable_height * 0.85:
+            h = int(usable_height * 0.82)
             use_scrollbar = True
         else:
-            h = min(needed_height, int(usable_height * 0.82))
+            h = min(needed_height, int(usable_height * 0.85))
             use_scrollbar = False
         
-        w = 750  # Tăng từ 700 để chứa chữ to
+        w = 820  # ✅ TĂNG TỪ 750
         
         min_h = title_height + 100 + button_height + total_padding
-        confirm.minsize(650, min(min_h, int(usable_height * 0.75)))
+        confirm.minsize(700, min(min_h, int(usable_height * 0.78)))
         
         x = (screen_width - w) // 2
         y = max(20, (screen_height - h) // 2 - 30)
         confirm.geometry(f"{w}x{h}+{x}+{y}")
 
-        # ✅ FIX: LAYOUT - BUTTONS LUÔN HIỂN THỊ
         main_container = ttk.Frame(confirm)
         main_container.pack(fill=BOTH, expand=True)
         
         content_frame = ttk.Frame(main_container)
-        content_frame.pack(fill=BOTH, expand=True, padx=28, pady=(22, 0))
+        content_frame.pack(fill=BOTH, expand=True, padx=32, pady=(26, 0))  # ✅ TĂNG PADDING
         
         title_text = f'Bạn có chắc muốn xoá {num_products} sản phẩm sau?'
         title_label = ttk.Label(
             content_frame,
             text=title_text,
-            font=(FONT_FAMILY, get_scaled_font(16), "bold"),
+            font=(FONT_FAMILY, get_scaled_font(18), "bold"),  # ✅ TĂNG TỪ 16
             anchor="center",
             justify="center"
         )
-        title_label.pack(pady=(0, 20))
+        title_label.pack(pady=(0, 22))  # ✅ TĂNG PADY
         
         if use_scrollbar:
             list_container = ttk.Frame(content_frame)
@@ -437,9 +434,9 @@ class HyCheckApp:
                 ttk.Label(
                     scrollable_frame,
                     text=f'- {name}',
-                    font=(FONT_FAMILY, get_scaled_font(14)),
+                    font=(FONT_FAMILY, get_scaled_font(16)),  # ✅ TĂNG TỪ 14
                     anchor="w"
-                ).pack(anchor="w", pady=5, padx=12)
+                ).pack(anchor="w", pady=6, padx=14)  # ✅ TĂNG PADDING
             
             canvas.pack(side="left", fill="both", expand=True)
             scrollbar.pack(side="right", fill="y")
@@ -451,12 +448,12 @@ class HyCheckApp:
                 ttk.Label(
                     list_frame,
                     text=f'- {name}',
-                    font=(FONT_FAMILY, get_scaled_font(14)),
+                    font=(FONT_FAMILY, get_scaled_font(16)),  # ✅ TĂNG TỪ 14
                     anchor="w"
-                ).pack(anchor="w", pady=5, padx=12)
+                ).pack(anchor="w", pady=6, padx=14)  # ✅ TĂNG PADDING
         
         btn_container = ttk.Frame(main_container)
-        btn_container.pack(fill=X, pady=(20, 30))
+        btn_container.pack(fill=X, pady=(22, 34))  # ✅ TĂNG PADY
         
         btn_frame = ttk.Frame(btn_container)
         btn_frame.pack()
@@ -470,11 +467,11 @@ class HyCheckApp:
             messagebox.showinfo("Thành công", f'Đã xoá {num_products} sản phẩm!', parent=self.root)
 
         ttk.Button(
-            btn_frame, text="Không", command=confirm.destroy, style="danger.TButton", width=14
-        ).pack(side=LEFT, padx=12)
+            btn_frame, text="Không", command=confirm.destroy, style="danger.TButton", width=16  # ✅ TĂNG WIDTH
+        ).pack(side=LEFT, padx=14)  # ✅ TĂNG PADX
         ttk.Button(
-            btn_frame, text="Xoá", command=do_delete, style="success.TButton", width=14
-        ).pack(side=LEFT, padx=12)
+            btn_frame, text="Xoá", command=do_delete, style="success.TButton", width=16  # ✅ TĂNG WIDTH
+        ).pack(side=LEFT, padx=14)  # ✅ TĂNG PADX
 
     def edit_product(self):
         """Sửa sản phẩm"""
@@ -488,7 +485,7 @@ class HyCheckApp:
         self.product_dialog(product_id, values)
 
     def product_dialog(self, barcode=None, values=None):
-        """✅ FIX CUỐI CÙNG: Dialog thêm/sửa - HIỂN THỊ ĐẦY ĐỦ KHÔNG BỊ CROP"""
+        """✅ FIX: Dialog thêm/sửa - SIZE LỚN TƯƠNG TỰ POPUP XEM"""
         dialog = tk.Toplevel(self.root)
         dialog.title("Thêm sản phẩm" if barcode is None else "Sửa sản phẩm")
         dialog.transient(self.root)
@@ -500,28 +497,19 @@ class HyCheckApp:
 
         is_macos = platform.system() == "Darwin"
         
-        # ✅ FIX: Usable height chính xác
         usable_height = screen_height - 100 if not is_macos else screen_height - 60
         
-        # ✅ FIX: Width đủ lớn để chứa font 19pt (TĂNG SIZE!)
-        base_w = 1120  # ✅ TĂNG TỪ 1080 LÊN 1120
+        # ✅ FIX: Width TƯƠNG TỰ popup xem (1200px)
+        base_w = 1200  # ✅ TĂNG TỪ 1120 LÊN 1200
         w = min(base_w, int(screen_width * 0.90))
         
-        # ✅ FIX: Height đủ lớn - TÍNH TOÁN DỰA TRÊN FONT SIZE MỚI
-        # Input frame: 2 dòng × 60px (font 18pt) = 120px
-        # Unit frame title + add controls: ~160px (TĂNG)
-        # Unit treeview: 3 hàng × 62px (rowheight) = 186px (TĂNG)
-        # Google frame: 60px
-        # Buttons frame: 80px
-        # Padding total: 160px
-        # TOTAL: ~766px
-        base_content_height = 800  # ✅ TĂNG TỪ 750 LÊN 800
+        # ✅ FIX: Height đủ lớn
+        base_content_height = 860  # ✅ TĂNG TỪ 800 LÊN 860
         h = min(base_content_height, int(usable_height * 0.96))
         
-        # ✅ FIX: Minsize an toàn - không crop content
         dialog.minsize(
-            min(920, w - 120),
-            min(650, int(usable_height * 0.82))
+            min(1000, w - 120),  # ✅ TĂNG TỪ 920
+            min(700, int(usable_height * 0.84))  # ✅ TĂNG TỪ 650
         )
         
         x = (screen_width - w) // 2
@@ -534,30 +522,30 @@ class HyCheckApp:
         units_origin = list(self.db.get_units_by_barcode(barcode_var.get().strip()))
         units_temp = [list(u) for u in units_origin]
 
-        # ✅ FIX: Input frame - spacing đủ lớn
+        # ✅ FIX: Input frame - FONT TO HƠN
         input_frame = ttk.Frame(dialog)
-        input_frame.pack(fill=X, padx=38, pady=(24, 14))
+        input_frame.pack(fill=X, padx=50, pady=(30, 20))  # ✅ TĂNG PADDING
         
-        ttk.Label(input_frame, text="Mã vạch:", font=(FONT_FAMILY, get_scaled_font(18), "bold")).grid(row=0, column=0, sticky="w", pady=12)
-        barcode_entry = ttk.Entry(input_frame, textvariable=barcode_var, font=(FONT_FAMILY, get_scaled_font(17)))
-        barcode_entry.grid(row=0, column=1, sticky="ew", padx=(14,0), pady=12)
+        ttk.Label(input_frame, text="Mã vạch:", font=(FONT_FAMILY, get_scaled_font(24), "bold")).grid(row=0, column=0, sticky="w", pady=16)  # ✅ TĂNG FONT
+        barcode_entry = ttk.Entry(input_frame, textvariable=barcode_var, font=(FONT_FAMILY, get_scaled_font(23)))  # ✅ TĂNG FONT
+        barcode_entry.grid(row=0, column=1, sticky="ew", padx=(18,0), pady=16)
         
-        ttk.Label(input_frame, text="Tên sản phẩm:", font=(FONT_FAMILY, get_scaled_font(18), "bold")).grid(row=1, column=0, sticky="w", pady=12)
-        name_entry = ttk.Entry(input_frame, textvariable=name_var, font=(FONT_FAMILY, get_scaled_font(17)))
-        name_entry.grid(row=1, column=1, sticky="ew", padx=(14,0), pady=12)
+        ttk.Label(input_frame, text="Tên sản phẩm:", font=(FONT_FAMILY, get_scaled_font(24), "bold")).grid(row=1, column=0, sticky="w", pady=16)  # ✅ TĂNG FONT
+        name_entry = ttk.Entry(input_frame, textvariable=name_var, font=(FONT_FAMILY, get_scaled_font(23)))  # ✅ TĂNG FONT
+        name_entry.grid(row=1, column=1, sticky="ew", padx=(18,0), pady=16)
         input_frame.columnconfigure(1, weight=1)
 
-        # ✅ FIX: Unit frame - spacing đủ lớn + FONT TO HƠN
-        unit_frame = ttk.LabelFrame(dialog, text="Đơn vị tính & Giá bán", padding=(18, 16))  # ✅ TĂNG PADDING
-        unit_frame.pack(fill=BOTH, expand=True, padx=38, pady=(0, 14))
+        # ✅ FIX: Unit frame - FONT TO HƠN
+        unit_frame = ttk.LabelFrame(dialog, text="Đơn vị tính & Giá bán", padding=(24, 20))  # ✅ TĂNG PADDING
+        unit_frame.pack(fill=BOTH, expand=True, padx=50, pady=(0, 20))
 
         add_unit_frame = ttk.Frame(unit_frame)
-        add_unit_frame.pack(fill=X, pady=(0, 16))  # ✅ TĂNG PADY
+        add_unit_frame.pack(fill=X, pady=(0, 18))
         add_unit_var = tk.StringVar()
         add_price_var = tk.StringVar()
 
-        unit_entry = ttk.Entry(add_unit_frame, textvariable=add_unit_var, width=16, font=(FONT_FAMILY, get_scaled_font(18)))  # ✅ TĂNG FONT TỪ 16 LÊN 18
-        unit_entry.pack(side=LEFT, padx=8)  # ✅ TĂNG PADX
+        unit_entry = ttk.Entry(add_unit_frame, textvariable=add_unit_var, width=16, font=(FONT_FAMILY, get_scaled_font(22)))  # ✅ TĂNG FONT TỪ 18 LÊN 22
+        unit_entry.pack(side=LEFT, padx=10)
         unit_entry.config(foreground="#888")
         
         def clear_unit_placeholder(event):
@@ -574,8 +562,8 @@ class HyCheckApp:
         unit_entry.bind("<FocusIn>", clear_unit_placeholder)
         unit_entry.bind("<FocusOut>", restore_unit_placeholder)
 
-        price_entry = ttk.Entry(add_unit_frame, textvariable=add_price_var, width=16, font=(FONT_FAMILY, get_scaled_font(18)))  # ✅ TĂNG FONT TỪ 16 LÊN 18
-        price_entry.pack(side=LEFT, padx=8)  # ✅ TĂNG PADX
+        price_entry = ttk.Entry(add_unit_frame, textvariable=add_price_var, width=16, font=(FONT_FAMILY, get_scaled_font(22)))  # ✅ TĂNG FONT TỪ 18 LÊN 22
+        price_entry.pack(side=LEFT, padx=10)
         price_entry.config(foreground="#888")
         
         def clear_price_placeholder(event):
@@ -593,7 +581,7 @@ class HyCheckApp:
         price_entry.bind("<FocusOut>", restore_price_placeholder)
 
         tree_container = ttk.Frame(unit_frame)
-        tree_container.pack(fill=BOTH, expand=True, pady=(0, 16))  # ✅ TĂNG PADY
+        tree_container.pack(fill=BOTH, expand=True, pady=(0, 18))
 
         unit_tree = ttk.Treeview(
             tree_container,
@@ -607,10 +595,10 @@ class HyCheckApp:
         unit_tree.heading("price", text="Giá bán (VND)")
         unit_tree.heading("action", text="")
         
-        # ✅ FIX: Column width phù hợp với font 19pt (TĂNG SIZE!)
-        unit_tree.column("unit", width=380, anchor="center")  # ✅ TĂNG TỪ 340 LÊN 380
-        unit_tree.column("price", width=380, anchor="center")  # ✅ TĂNG TỪ 340 LÊN 380
-        unit_tree.column("action", width=180, anchor="center")  # ✅ TĂNG TỪ 170 LÊN 180
+        # ✅ FIX: Column width RỘNG HƠN (tương tự popup xem)
+        unit_tree.column("unit", width=480, anchor="center")  # ✅ TĂNG TỪ 380 LÊN 480
+        unit_tree.column("price", width=480, anchor="center")  # ✅ TĂNG TỪ 380 LÊN 480
+        unit_tree.column("action", width=200, anchor="center")  # ✅ TĂNG TỪ 180 LÊN 200
 
         unit_tree.pack(side="left", fill="both", expand=True)
         
@@ -670,7 +658,7 @@ class HyCheckApp:
             load_units()
 
         def show_delete_unit_popup(idx, unit_name):
-            """✅ FIX: Popup xóa unit - SIZE ĐẦY ĐỦ"""
+            """✅ FIX: Popup xóa unit - SIZE LỚN HƠN"""
             popup = tk.Toplevel(dialog)
             popup.title("Xác nhận xoá đơn vị tính")
             popup.transient(dialog)
@@ -680,10 +668,10 @@ class HyCheckApp:
             screen_width = popup.winfo_screenwidth()
             screen_height = popup.winfo_screenheight()
             
-            w = 680  # Tăng từ 640
-            h = 260  # Tăng từ 240
+            w = 740  # ✅ TĂNG TỪ 680
+            h = 280  # ✅ TĂNG TỪ 260
             
-            popup.minsize(600, 230)
+            popup.minsize(640, 250)
             
             x = (screen_width - w) // 2
             y = max(25, (screen_height - h) // 2 - 35)
@@ -693,26 +681,26 @@ class HyCheckApp:
             main_container.pack(fill=BOTH, expand=True)
             
             message_frame = ttk.Frame(main_container)
-            message_frame.pack(fill=BOTH, expand=True, padx=32, pady=(32, 20))
+            message_frame.pack(fill=BOTH, expand=True, padx=36, pady=(36, 24))  # ✅ TĂNG PADDING
             
             label = ttk.Label(
                 message_frame,
                 text=f'Bạn có chắc muốn xoá đơn vị tính\n"{unit_name}" này?',
-                font=(FONT_FAMILY, get_scaled_font(16), "bold"),
+                font=(FONT_FAMILY, get_scaled_font(18), "bold"),  # ✅ TĂNG TỪ 16
                 anchor="center",
                 justify="center"
             )
             label.pack()
             
             btn_container = ttk.Frame(main_container)
-            btn_container.pack(fill=X, pady=(0, 32))
+            btn_container.pack(fill=X, pady=(0, 36))  # ✅ TĂNG PADY
             
             btn_frame = ttk.Frame(btn_container)
             btn_frame.pack()
             
             ttk.Button(
-                btn_frame, text="Không", command=popup.destroy, style="danger.TButton", width=14
-            ).pack(side=LEFT, padx=12)
+                btn_frame, text="Không", command=popup.destroy, style="danger.TButton", width=16  # ✅ TĂNG WIDTH
+            ).pack(side=LEFT, padx=14)
             
             def do_delete():
                 delete_unit(idx)
@@ -723,8 +711,8 @@ class HyCheckApp:
                 dialog.focus_force()
             
             ttk.Button(
-                btn_frame, text="Xoá", command=do_delete, style="success.TButton", width=14
-            ).pack(side=LEFT, padx=12)
+                btn_frame, text="Xoá", command=do_delete, style="success.TButton", width=16  # ✅ TĂNG WIDTH
+            ).pack(side=LEFT, padx=14)
 
         def on_unit_click(event):
             region = unit_tree.identify("region", event.x, event.y)
@@ -750,7 +738,7 @@ class HyCheckApp:
             width=3,
             command=add_unit,
             style="success.TButton",
-        ).pack(side=LEFT, padx=8)  # ✅ TĂNG PADX
+        ).pack(side=LEFT, padx=10)
 
         # Google Images
         def open_google_images():
@@ -762,9 +750,9 @@ class HyCheckApp:
             webbrowser.open(url)
 
         google_frame = ttk.Frame(dialog)
-        google_frame.pack(fill=X, padx=38, pady=(0, 14))
+        google_frame.pack(fill=X, padx=50, pady=(0, 18))
         ttk.Label(
-            google_frame, text="Gợi ý ảnh Google Images:", font=(FONT_FAMILY, get_scaled_font(13))
+            google_frame, text="Gợi ý ảnh Google Images:", font=(FONT_FAMILY, get_scaled_font(15))
         ).pack(side=LEFT)
         ttk.Button(
             google_frame,
@@ -775,7 +763,7 @@ class HyCheckApp:
 
         # Buttons
         btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(pady=(0, 26))
+        btn_frame.pack(pady=(0, 30))
 
         def save_product():
             barcode = barcode_var.get().strip()
@@ -824,19 +812,19 @@ class HyCheckApp:
             bootstyle=SUCCESS,
             command=save_product,
             style="success.TButton",
-            width=13,
-        ).pack(side=LEFT, padx=12)
+            width=15,
+        ).pack(side=LEFT, padx=14)
         ttk.Button(
             btn_frame,
             text="❌ Hủy",
             command=dialog.destroy,
             style="danger.TButton",
-            width=13,
-        ).pack(side=LEFT, padx=12)
+            width=15,
+        ).pack(side=LEFT, padx=14)
 
     # Scanner methods
     def scan_barcode(self, event=None):
-        """✅ FIX CUỐI CÙNG: Scan popup - HIỂN THỊ ĐẦY ĐỦ"""
+        """✅ FIX: Scan popup - SIZE LỚN"""
         barcode = self.barcode_var.get().strip()
         if not barcode:
             return
@@ -863,65 +851,64 @@ class HyCheckApp:
             
             usable_height = screen_height - 100 if not is_macos else screen_height - 60
             
-            # ✅ FIX: Tính toán chính xác - FONT TO HƠN = CHIỀU CAO LỚN HƠN
-            # Info frame: 2 dòng × 70px (font 20pt) = 140px
-            # Unit frame title: 80px (TĂNG)
-            # Unit treeview: N × 68px (rowheight) (TĂNG!)
-            # Google frame: 70px
-            # Buttons: 90px
-            # Padding: 140px
-            base_height = 420  # ✅ TĂNG TỪ 400 LÊN 420
-            unit_line_height = 74  # ✅ TĂNG TỪ 64 LÊN 74 (font 22pt cao hơn)
+            base_height = 600
+            unit_line_height = 78
             content_height = base_height + (num_units * unit_line_height)
             
-            max_h = min(780, int(usable_height * 0.96))  # ✅ TĂNG TỪ 720 LÊN 780
+            max_h = min(960, int(usable_height * 0.98))
             h = min(content_height, max_h)
             
-            w = min(1020, int(screen_width * 0.82))  # ✅ TĂNG TỪ 950 LÊN 1020
+            w = min(1200, int(screen_width * 0.88))
             
             popup.minsize(
-                min(860, w - 90),
-                min(540, int(usable_height * 0.80))
+                min(1000, w - 100),
+                min(650, int(usable_height * 0.84))
             )
             
             x = (screen_width - w) // 2
             y = max(10, (screen_height - h) // 2 - 25)
             popup.geometry(f"{w}x{h}+{x}+{y}")
 
-            # ✅ FIX: Info frame - spacing lớn hơn
             info_frame = ttk.Frame(popup)
-            info_frame.pack(fill=X, padx=40, pady=(28, 18))  # ✅ TĂNG PADDING
+            info_frame.pack(fill=X, padx=50, pady=(35, 25))
             
-            ttk.Label(info_frame, text="Mã vạch:", font=(FONT_FAMILY, get_scaled_font(20), "bold")).grid(row=0, column=0, sticky="w", pady=14)
-            ttk.Label(info_frame, text=product[1], font=(FONT_FAMILY, get_scaled_font(19))).grid(row=0, column=1, sticky="ew", padx=(14,0), pady=14)
+            ttk.Label(info_frame, text="Mã vạch:", font=(FONT_FAMILY, get_scaled_font(24), "bold")).grid(row=0, column=0, sticky="w", pady=18)
+            ttk.Label(info_frame, text=product[1], font=(FONT_FAMILY, get_scaled_font(23))).grid(row=0, column=1, sticky="ew", padx=(18,0), pady=18)
             
-            ttk.Label(info_frame, text="Tên sản phẩm:", font=(FONT_FAMILY, get_scaled_font(20), "bold")).grid(row=1, column=0, sticky="w", pady=14)
-            ttk.Label(info_frame, text=product[2], font=(FONT_FAMILY, get_scaled_font(19))).grid(row=1, column=1, sticky="ew", padx=(14,0), pady=14)
+            ttk.Label(info_frame, text="Tên sản phẩm:", font=(FONT_FAMILY, get_scaled_font(24), "bold")).grid(row=1, column=0, sticky="w", pady=18)
+            ttk.Label(info_frame, text=product[2], font=(FONT_FAMILY, get_scaled_font(23))).grid(row=1, column=1, sticky="ew", padx=(18,0), pady=18)
             info_frame.columnconfigure(1, weight=1)
 
-            # ✅ FIX: Unit frame - spacing lớn hơn + FONT TO HƠN
-            unit_frame = ttk.LabelFrame(popup, text="", padding=(18, 16))  # ✅ TĂNG PADDING
-            unit_frame.pack(fill=BOTH, expand=True, padx=40, pady=(0, 18))  # ✅ TĂNG PADDING
+            unit_frame = ttk.LabelFrame(popup, text="", padding=(24, 20))
+            unit_frame.pack(fill=BOTH, expand=True, padx=50, pady=(0, 25))
 
-            title_label = ttk.Label(unit_frame, text="Đơn vị tính & Giá bán", font=(FONT_FAMILY, get_scaled_font(20), "bold"))  # ✅ TĂNG FONT TỪ 18 LÊN 20
-            title_label.pack(anchor="w", padx=8, pady=(0, 16))  # ✅ TĂNG PADY
+            title_label = ttk.Label(unit_frame, text="Đơn vị tính & Giá bán", font=(FONT_FAMILY, get_scaled_font(24), "bold"))
+            title_label.pack(anchor="w", padx=12, pady=(0, 20))
 
             tree_container = ttk.Frame(unit_frame)
             tree_container.pack(fill=BOTH, expand=True)
+
+            style = ttk.Style()
+            style.configure("ScanPopup.Treeview", 
+                font=(FONT_FAMILY, get_scaled_font(26)),
+                rowheight=78
+            )
+            style.configure("ScanPopup.Treeview.Heading", 
+                font=(FONT_FAMILY, get_scaled_font(28), "bold")
+            )
 
             unit_tree = ttk.Treeview(
                 tree_container, 
                 columns=("unit", "price"), 
                 show="headings", 
                 height=num_units,
-                style="Scan.Treeview"
+                style="ScanPopup.Treeview"
             )
             unit_tree.heading("unit", text="Đơn vị tính")
             unit_tree.heading("price", text="Giá bán (VND)")
 
-            # ✅ FIX: Column width phù hợp font 22pt (TĂNG SIZE!)
-            unit_tree.column("unit", width=460, anchor="center")  # ✅ TĂNG TỪ 410 LÊN 460
-            unit_tree.column("price", width=460, anchor="center")  # ✅ TĂNG TỪ 410 LÊN 460
+            unit_tree.column("unit", width=540, anchor="center")
+            unit_tree.column("price", width=540, anchor="center")
             unit_tree.pack(side=LEFT, fill=BOTH, expand=True)
 
             unit_scroll = ttk.Scrollbar(tree_container, orient=VERTICAL, command=unit_tree.yview)
@@ -930,7 +917,6 @@ class HyCheckApp:
             for u in units:
                 unit_tree.insert("", "end", values=(u[2], f"{u[3]:,.0f}"))
 
-            # Google Images
             def open_google_images():
                 q = product[1] or product[2]
                 if not q:
@@ -940,9 +926,9 @@ class HyCheckApp:
                 webbrowser.open(url)
 
             google_frame = ttk.Frame(popup)
-            google_frame.pack(fill=X, padx=40, pady=(0, 18))  # ✅ TĂNG PADDING
+            google_frame.pack(fill=X, padx=50, pady=(0, 22))
             ttk.Label(
-                google_frame, text="Gợi ý ảnh Google Images:", font=(FONT_FAMILY, get_scaled_font(13))
+                google_frame, text="Gợi ý ảnh Google Images:", font=(FONT_FAMILY, get_scaled_font(15))
             ).pack(side=LEFT)
             ttk.Button(
                 google_frame,
@@ -951,13 +937,12 @@ class HyCheckApp:
                 style="info.TButton",
             ).pack(side=LEFT, padx=12)
 
-            # Buttons
             def open_edit():
                 popup.destroy()
                 self.product_dialog(barcode=barcode, values=[product[1], product[2]])
 
             btn_frame = ttk.Frame(popup)
-            btn_frame.pack(pady=(0, 28))  # ✅ TĂNG PADY
+            btn_frame.pack(pady=(0, 35))
             ttk.Button(
                 btn_frame,
                 text="✏️ Sửa sản phẩm",
@@ -973,52 +958,65 @@ class HyCheckApp:
                 width=15,
             ).pack(side=LEFT, padx=12)
         else:
-            # Not found popup
+            # ✅ FIX: Popup không tìm thấy - SIZE LỚN HƠN
             popup = tk.Toplevel(self.root)
             popup.title("Không tìm thấy sản phẩm")
             popup.transient(self.root)
             popup.grab_set()
-            popup.resizable(False, False)
+            popup.resizable(True, True)  # ✅ CHO PHÉP RESIZE
             
-            w = 740  # Tăng từ 700
-            h = 280  # Tăng từ 260
+            w = 860  # ✅ TĂNG TỪ 740 LÊN 860
+            h = 320  # ✅ TĂNG TỪ 280 LÊN 320
             
             screen_width = popup.winfo_screenwidth()
             screen_height = popup.winfo_screenheight()
+            
+            popup.minsize(740, 280)  # ✅ MINSIZE AN TOÀN
+            
             x = (screen_width - w) // 2
             y = (screen_height - h) // 2
             popup.geometry(f"{w}x{h}+{x}+{y}")
             
+            # ✅ FIX: LAYOUT TỐT HƠN
+            main_container = ttk.Frame(popup)
+            main_container.pack(fill=BOTH, expand=True)
+            
+            message_frame = ttk.Frame(main_container)
+            message_frame.pack(fill=BOTH, expand=True, padx=40, pady=(40, 28))  # ✅ TĂNG PADDING
+            
             label = ttk.Label(
-                popup,
+                message_frame,
                 text=f"Không tìm thấy sản phẩm với mã vạch: {barcode}",
-                font=(FONT_FAMILY, get_scaled_font(15)),
-                wraplength=680,
+                font=(FONT_FAMILY, get_scaled_font(17)),  # ✅ TĂNG TỪ 15 LÊN 17
+                wraplength=760,  # ✅ TĂNG WRAPLENGTH
                 anchor="center",
                 justify="center"
             )
-            label.pack(pady=(45, 32))
+            label.pack()
 
             def open_add():
                 popup.destroy()
                 self.product_dialog(barcode=barcode)
 
-            btn_frame = ttk.Frame(popup)
-            btn_frame.pack(pady=(0, 35))
+            btn_container = ttk.Frame(main_container)
+            btn_container.pack(fill=X, pady=(0, 40))  # ✅ TĂNG PADY
+            
+            btn_frame = ttk.Frame(btn_container)
+            btn_frame.pack()
             
             ttk.Button(
                 btn_frame,
                 text="➕ Thêm sản phẩm mới",
                 command=open_add,
                 style="success.TButton",
-                width=19,
-            ).pack(pady=(0, 14))
+                width=21,  # ✅ TĂNG WIDTH TỪ 19 LÊN 21
+            ).pack(pady=(0, 16))  # ✅ TĂNG PADY
             ttk.Button(
                 btn_frame,
                 text="Đóng",
                 command=popup.destroy,
                 style="danger.TButton",
-                width=19,
+                width=21,  # ✅ TĂNG WIDTH TỪ 19 LÊN 21
             ).pack()
 
         self.barcode_var.set("")
